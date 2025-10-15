@@ -1,0 +1,95 @@
+CREATE FUNCTION "ZTKA_F_B5_CES_V2"
+(
+	IN GetYear INTEGER,
+	IN GetMonth INTEGER,
+	IN MXFERT_price DECIMAL(19,6)
+)
+
+RETURNS TABLE
+(
+	"Material Code" NVARCHAR(100),
+	"ItemCode" NVARCHAR(100), 
+	"Quantity" DECIMAL(38, 6),	
+	"UoM" NVARCHAR(2),
+	"Batch ID" NVARCHAR(36),
+	"Transaction Code" NVARCHAR(50),
+	"Status" NVARCHAR(1),
+	"Value" DECIMAL
+)
+
+AS
+
+BEGIN
+DECLARE CMPCODE NVARCHAR(4);
+SELECT "Code" INTO CMPCODE FROM "@ZTKA_WHB_CV";
+
+RETURN
+SELECT 
+	t."Material Code",
+	t."ItemCode", 
+	SUM((t."Quantity") * -1) AS "Quantity",
+	t."UoM",
+	t."Batch ID",
+	t."Transaction Code",
+	t."Status",
+	SUM(t."Value"* -1) AS "Value"
+FROM
+(
+	SELECT
+		CASE WHEN i."QryGroup1" = 'Y' THEN i."U_TKA_LillySKU" ELSE
+				CASE 
+					WHEN i."ItmsGrpCod" IN ('102', '105') THEN 'MXVERP'
+					ELSE'MXFERT'	
+				END
+		END AS "Material Code",
+		i."ItemCode" as "ItemCode",
+		CASE WHEN i."UgpEntry" = 2 AND i."PriceUnit" = 4 THEN h."Quantity" / 1000
+		ELSE
+			CASE WHEN i."QryGroup1" = 'N' THEN
+				CASE WHEN :MXFERT_price = 0 THEN
+					--ROUND(IFNULL(z."U_PRAC1",0) * "Quantity", 0)
+					IFNULL(LASTPRICE."U_PRAC1", IFNULL(z."U_PRAC1", "LastPurPrc")) * "Quantity"
+					--IFNULL(z."U_PRAC1",0) * "Quantity"
+				ELSE :MXFERT_price END
+			ELSE h."Quantity" END
+		END AS "Quantity", 	
+		CASE WHEN i."UgpEntry" = 2 AND i."PriceUnit" = 4 THEN 'KG' ELSE 'EA' END AS "UoM", 
+		CASE WHEN i."QryGroup1" = 'Y' THEN CASE WHEN h."Lot" NOT LIKE_REGEXPR('[A-Z]') THEN 'IBATCH' ELSE h."Lot" END ELSE 'IBATCH' END AS "Batch ID",
+		--CASE WHEN i."QryGroup1" = 'Y' THEN h."Lot" ELSE 'IBATCH' END AS "Batch ID",
+		h."Series_Type" AS "Transaction Code",
+		/*case 
+			when h."LocCode" not in ('114','122') then 'U'  
+			when h."LocCode" in ('114','122') then 'B'  
+		end */
+		'U' AS "Status",
+		CASE WHEN i."QryGroup1" = 'Y' THEN
+			h."Quantity" * IFNULL(LASTPRICE."U_PRAC1", IFNULL(z."U_PRAC1", "LastPurPrc")) -- IFNULL(z."U_PRAC1", 0)-- * -1
+		ELSE
+			CASE WHEN :MXFERT_price = 0 THEN
+				--ROUND(IFNULL(z."U_PRAC1",0) * "Quantity", 0)
+				IFNULL(LASTPRICE."U_PRAC1", IFNULL(z."U_PRAC1", "LastPurPrc")) * "Quantity"
+				--IFNULL(z."U_PRAC1",0) * "Quantity"
+			ELSE :MXFERT_price END
+		END AS "Value"
+	
+	FROM "ZTKA_V_B5_BASE" h
+		JOIN "OITM" i ON h."ItemCode" = i."ItemCode"
+		LEFT JOIN "@ZTKA_WHB_VL_NEW" z ON "U_ItemCode" = h."ItemCode" and "U_FYear" = :GetYear and "U_Period" = :GetMonth and "U_CmpCode" = :cmpcode
+		LEFT JOIN TKA_V_WHB_VL__NEW_LAST_PRICE LASTPRICE ON LASTPRICE."U_ItemCode" = i."ItemCode"
+
+	WHERE 1=1
+		AND YEAR(h."DocDate") = :GetYear AND MONTH(h."DocDate") = :GetMonth 
+		AND h."TransType" IN ('13', '15')
+		AND h."Series_Type" IN ('CES')--,'GRP') 
+        AND i."ItmsGrpCod" <> '103'
+        AND h."LocCode" NOT IN ('114','122')
+) t 
+GROUP BY 
+	t."Material Code",
+	t."UoM",
+	t."Batch ID",
+	t."Transaction Code",
+	t."Status",
+	t."ItemCode" 
+;
+END;

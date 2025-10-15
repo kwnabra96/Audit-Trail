@@ -1,0 +1,50 @@
+CREATE FUNCTION "ZTKA_F_B5_AUDIT"
+(
+	 IN GetYear INTEGER,
+	 IN GetMonth INTEGER,
+	 IN MXFERT_price DECIMAL(19,6)
+)
+
+RETURNS TABLE
+(
+		"Material Code" NVARCHAR(100),
+		"Batch ID" NVARCHAR(50),
+		"ORG_MEIUCUR" DECIMAL(38, 6),	
+		"CALC_MEIUCUR" DECIMAL(38, 6)
+)
+
+AS
+
+BEGIN
+
+RETURN
+
+select "Material Code", "Batch ID", sum("ORG_MEIUCUR") as "ORG_MEIUCUR", sum("CALC_MEIUCUR") as "CALC_MEIUCUR"
+FROM (
+	SELECT "Material Code",
+		"Batch ID",
+		"Quantity" as "ORG_MEIUCUR",
+		0 as "CALC_MEIUCUR" 
+	FROM "ZTKA_F_B5"(:GetYear,:GetMonth,:MXFERT_price)
+	WHERE "Transaction Code" = 'MEI' AND "Status"='U'
+
+	union all 
+
+	SELECT 	case when I."QryGroup1" = 'Y'  then I."U_TKA_LillySKU" else
+				case 
+					when I."ItmsGrpCod" = '102' then 'MXVERP'       
+					when I."ItmsGrpCod" = '105' then 'MXVERP'        
+					else 'MXFERT'	
+				end
+			end as "Material Code",
+			case when I."QryGroup1" = 'Y' then B."DistNumber" else 'IBATCH' end as "Batch ID",			
+            0 as "ORG_MEIUCUR",
+			case when I."UgpEntry" = 2 and I."PriceUnit" = 4 then L."Quantity" / 1000 else L."Quantity" end as "CALC_MEIUCUR"
+	FROM OITL H JOIN ITL1 L ON H."LogEntry" = L."LogEntry" 
+		JOIN OBTN B ON B."SysNumber" = L."SysNumber" AND B."AbsEntry" = L."MdAbsEntry" 
+		JOIN OITM I ON H."ItemCode" = I."ItemCode"
+	where year(H."DocDate") = :GetYear and month(H."DocDate") <= :GetMonth
+		and H."LocCode" not in ('114','122')
+) 
+GROUP BY "Material Code", "Batch ID";
+END;

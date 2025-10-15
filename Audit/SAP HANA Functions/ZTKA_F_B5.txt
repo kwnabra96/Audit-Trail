@@ -1,0 +1,162 @@
+CREATE FUNCTION "ZTKA_F_B5"
+(
+	 IN GetYear INTEGER,
+	 IN GetMonth INTEGER,
+	 IN MXFERT_price DECIMAL(19,6)
+)
+
+RETURNS TABLE
+(
+		"Material Code" NVARCHAR(100),
+		"Quantity" NUMERIC,	
+		"Sign" NVARCHAR(1),
+		"UoM" NVARCHAR(2),
+		"Batch ID" NVARCHAR(36),
+		"Transaction Code" NVARCHAR(50),
+		"Status" NVARCHAR(1),
+		"Value" DECIMAL 
+)
+
+AS
+
+BEGIN
+
+RETURN
+
+select t."Material Code", 
+		abs(sum(t."Quantity")) as "Quantity",
+		case when sum(t."Quantity") >= 0 then '+' else '-' end as "Sign",
+		t."UoM",
+		t."Batch ID",
+		t."Transaction Code",
+		t."Status",
+		sum(t."Value") as "Value"
+FROM 
+(
+/*select "U_MaterialCode" as "Material Code", 
+		case when "U_Sign" = '-' then "U_Quantity" * -1 else "U_Quantity" end as "Quantity",
+		"U_UoM" as "UoM",
+		"U_BatchID" as "Batch ID",
+		"U_TransactionCode" as "Transaction Code",
+		"U_Status" as "Status",
+		"U_Value" as "Value"  
+from "@TKA_B5_BALANCES"
+where "U_Quantity" <> 0 or "U_Value" <> 0
+
+union all */
+
+select "Material Code", 
+		"Quantity",
+		"UoM",
+		"Batch ID",
+		"Transaction Code",
+		"Status",
+		"Value"  
+from "ZTKA_F_B5_CES"(:GetYear,:GetMonth,:MXFERT_price)
+where "Quantity" <> 0 or "Value" <> 0
+
+union all
+
+select "Material Code", 
+		"Quantity",
+		"UoM",
+		"Batch ID",
+		"Transaction Code",
+		"Status",
+		"Value"  
+from "ZTKA_F_B5_COM"(:GetYear,:GetMonth,:MXFERT_price)
+where "Quantity" <> 0 or "Value" <> 0
+
+union all
+
+select "Material Code", 
+		"Quantity",
+		"UoM",
+		"Batch ID",
+		"Transaction Code",
+		"Status",
+		"Value"  
+from "ZTKA_F_B5_GRP"(:GetYear,:GetMonth,:MXFERT_price)
+where "Quantity" <> 0 or "Value" <> 0
+
+union all
+
+select "Material Code", 
+		"Quantity",
+		"UoM",
+		"Batch ID",
+		"Transaction Code",
+		"Status",
+		"Value"  
+from "ZTKA_F_B5_ILS"(:GetYear,:GetMonth,:MXFERT_price)
+where "Quantity" <> 0 or "Value" <> 0
+
+union all
+
+select "Material Code", 
+		"Quantity",
+		"UoM",
+		"Batch ID",
+		"Transaction Code",
+		"Status",
+		"Value"  
+from "ZTKA_F_B5_IAS"(:GetYear,:GetMonth,:MXFERT_price)
+where "Quantity" <> 0 or "Value" <> 0
+
+union all
+
+select "Material Code", 
+		"Quantity",
+		"UoM",
+		"Batch ID",
+		"Transaction Code",
+		"Status",
+		"Value"  
+from "ZTKA_F_B5_INR"(:GetYear,:GetMonth,:MXFERT_price)
+where "Quantity" <> 0 or "Value" <> 0
+
+union all
+
+select "Material Code", 
+		"Quantity",
+		"UoM",
+		"Batch ID",
+		"Transaction Code",
+		"Status",
+		"Value"  
+from "ZTKA_F_B5_RET"(:GetYear,:GetMonth,:MXFERT_price)
+where "Quantity" <> 0 or "Value" <> 0
+
+union all
+
+select "Material Code", 
+		"Quantity",
+		"UoM",
+		"Batch ID",
+		"Transaction Code",
+		"Status",
+		"Value"  
+from "ZTKA_F_B5_MEI"(:GetYear,:GetMonth,:MXFERT_price)
+where "Quantity" <> 0 or "Value" <> 0
+
+union all
+
+select "Material Code", 
+		"Quantity",
+		"UoM",
+		"Batch ID",
+		"Transaction Code",
+		"Status",
+		"Value"  
+from "ZTKA_F_B5_ITM"(:GetYear,:GetMonth,:MXFERT_price)
+where "Quantity" <> 0 or "Value" <> 0
+) t 
+group by 
+		t."Material Code" ,
+		t."UoM" ,
+		t."Batch ID" ,
+		t."Transaction Code" ,
+		t."Status"
+;
+
+END;
