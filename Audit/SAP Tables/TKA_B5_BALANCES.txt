@@ -1,9 +1,0 @@
-TKA_B5_BALANCES - B5 Balances - No Object
-MaterialCode	Alphanumeric 25
-Quantity		Ποσότητα
-Sign			Alphanumeric 10
-UoM				Alphanumeric 250
-BatchID			Alphanumeric 25
-TransactionCode	Alphanumeric 50
-Status			Alphanumeric 50
-Value			Τιμή
