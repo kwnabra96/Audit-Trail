@@ -1,0 +1,86 @@
+CREATE VIEW "PHAR_PROD"."TKA_V_AUDIT_TRAIL_OACT_ALL_DATA" ( "AcctCode", "Postable", "AcctName", "UserSign", "Creator", "UserSign2", "Modifier", "CreateDate", "UpdateDate", "Levels", "ActType", "OverCode", "U_TKA_HasPO", "U_TKA_Dapanes", "U_TKA_USOmadaEksodwn", "U_TKA_LogariasmosELP", "U_TKA_LogIsologismouEnerg", "U_TKA_LogIsologismouPath", "U_TKA_AccountType", "U_TKA_USAccount", "U_TKA_QtyAccount", "U_BP_TyImp", "DfltVat", "Source", "LogInstanc" ) AS SELECT
+	 h."AcctCode",
+	 h."Postable",
+	 h."AcctName",
+	 h."UserSign",
+	 U1."U_NAME" AS "Creator",
+	h."UserSign2",
+	 U2."U_NAME" AS "Modifier",
+	 h."CreateDate",
+	 h."UpdateDate",
+	 --IFNULL(h."UpdateDate",h."CreateDate") AS "UpdateDate",
+h."Levels",
+	 "ActType",
+	 "OverCode",
+	 "U_TKA_HasPO",
+	 "U_TKA_Dapanes",
+	 "U_TKA_USOmadaEksodwn",
+	 h."U_TKA_LogariasmosELP",
+	 h."U_TKA_LogIsologismouEnerg",
+	 h."U_TKA_LogIsologismouPath",
+	 h."U_TKA_AccountType",
+	 h."U_TKA_USAccount",
+	 h."U_TKA_QtyAccount",
+	 h."U_BP_TyImp",
+	 h."DfltVat",
+	 s."Source",
+	 h."LogInstanc" AS "LogInstanc" 
+FROM ( SELECT
+	 "AcctCode",
+	"Postable",
+	"AcctName",
+	"UserSign",
+	"UserSign2",
+	"CreateDate",
+	"UpdateDate",
+	"Levels",
+	"ActType",
+	"OverCode",
+	"U_TKA_HasPO",
+	"U_TKA_Dapanes",
+	"U_TKA_USOmadaEksodwn",
+	 "U_TKA_LogariasmosELP",
+	"U_TKA_LogIsologismouEnerg",
+	"U_TKA_LogIsologismouPath",
+	"U_TKA_AccountType",
+	"U_TKA_USAccount",
+	 "U_TKA_QtyAccount",
+	"U_BP_TyImp",
+	"DfltVat",
+	"Category",
+	"LogInstanc" 
+	FROM AACT A 
+	UNION ALL SELECT
+	 "AcctCode",
+	"Postable",
+	"AcctName",
+	"UserSign",
+	"UserSign2",
+	"CreateDate",
+	"UpdateDate",
+	"Levels",
+	"ActType",
+	"OverCode",
+	"U_TKA_HasPO",
+	"U_TKA_Dapanes",
+	"U_TKA_USOmadaEksodwn",
+	 "U_TKA_LogariasmosELP",
+	"U_TKA_LogIsologismouEnerg",
+	"U_TKA_LogIsologismouPath",
+	"U_TKA_AccountType",
+	"U_TKA_USAccount",
+	 "U_TKA_QtyAccount",
+	"U_BP_TyImp",
+	"DfltVat",
+	 "Category",
+	 (SELECT
+	 MAX(R."LogInstanc")+1 
+		FROM AACT R 
+		WHERE R."AcctCode" = OACT."AcctCode") AS "LogInstanc" 
+	FROM OACT ) h 
+LEFT JOIN (SELECT
+	 CAST("AbsId" AS NVARCHAR) || ' | ' || "Name" AS "Source",
+	 "AbsId" 
+	FROM OACG)s ON h."Category" = s."AbsId" 
+LEFT JOIN OUSR U1 ON h."UserSign" = U1."INTERNAL_K" 
+LEFT JOIN OUSR U2 ON h."UserSign2" = U2."INTERNAL_K" WITH READ ONLY
